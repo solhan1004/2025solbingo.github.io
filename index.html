@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>초등용 빙고게임</title>
+  <style>
+    :root {
+      --bg: #f7fafc;
+      --card: #ffffff;
+      --line: #e2e8f0;
+      --accent: #2563eb;
+      --accent-2: #0ea5e9;
+      --text: #0f172a;
+      --muted: #475569;
+      --good: #ef4444; /* 빨강 (표시 색) */
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Pretendard", system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", Apple SD Gothic Neo, "맑은 고딕", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    .wrap {
+      max-width: 980px;
+      margin: 24px auto;
+      padding: 16px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      box-shadow: 0 6px 20px rgba(15, 23, 42, 0.06);
+      padding: 20px;
+    }
+    .header {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: start;
+    }
+    .title {
+      font-weight: 800;
+      font-size: clamp(20px, 2.6vw, 28px);
+      letter-spacing: 0.2px;
+    }
+    .subtitle { color: var(--muted); font-size: 14px; }
+
+    .meta {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .meta .field { display: flex; flex-direction: column; gap: 6px; }
+    .meta label { font-size: 12px; color: var(--muted); }
+    .meta input {
+      padding: 10px 12px;
+      border: 1.5px solid var(--line);
+      border-radius: 10px;
+      font-size: 14px;
+      outline: none;
+    }
+    .meta input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15); }
+
+    .timer {
+      position: relative;
+      min-width: 220px;
+      border: 1.5px solid var(--line);
+      border-radius: 12px;
+      padding: 10px;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      grid-template-rows: auto auto;
+      gap: 6px 12px;
+      align-items: center;
+      justify-items: start;
+    }
+    .timer-label { font-size: 12px; color: var(--muted); grid-column: 1 / -1; }
+    .time {
+      font-variant-numeric: tabular-nums;
+      font-weight: 800;
+      font-size: 28px;
+      line-height: 1;
+    }
+    .timer-buttons {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    button {
+      cursor: pointer;
+      border: 1.5px solid var(--line);
+      background: #fff;
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-weight: 700;
+    }
+    button.primary { border-color: var(--accent); color: #fff; background: var(--accent); }
+    button.ghost { background: #fff; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .toolbar { display: flex; gap: 10px; align-items: center; margin: 18px 0 8px; flex-wrap: wrap; }
+    .hint { color: var(--muted); font-size: 13px; }
+
+    .board {
+      user-select: none;
+      background: linear-gradient(180deg, #fff, #fdfdfd);
+      border: 2px solid var(--line);
+      border-radius: 16px;
+      padding: 12px;
+    }
+    table {
+      border-collapse: separate;
+      border-spacing: 8px;
+      width: 100%;
+    }
+    td {
+      position: relative;
+      aspect-ratio: 1 / 1;
+      background: #fff;
+      border: 2px solid var(--line);
+      border-radius: 12px;
+      overflow: hidden;
+      transition: transform 0.05s ease;
+    }
+    td:active { transform: scale(0.98); }
+    td.marked { background: var(--good); border-color: #dc2626; }
+    td.marked input { color: #fff; text-decoration: none; }
+
+    td input {
+      width: 100%; height: 100%;
+      border: none; outline: none;
+      padding: 10px; text-align: center;
+      font-size: clamp(16px, 2.2vw, 22px);
+      font-weight: 700;
+      background: transparent;
+      color: var(--text);
+    }
+    td input::placeholder { color: #cbd5e1; }
+    td input[readonly] { cursor: pointer; }
+
+    .footer { margin-top: 14px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .credits { color: var(--muted); font-size: 12px; }
+
+    @media (max-width: 720px) {
+      .header { grid-template-columns: 1fr; }
+      .timer { grid-template-columns: 1fr; justify-items: stretch; }
+      .meta { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="header">
+        <div>
+          <div class="title">빙고게임 🧩</div>
+          <div class="subtitle">25칸을 빠르게 채우고, 다 채우면 <strong>채점 모드</strong>로 클릭해서 맞은 칸을 <strong style="color:var(--good)">빨간색</strong>으로 표시해요!</div>
+
+          <div class="meta">
+            <div class="field">
+              <label>( )초등학교</label>
+              <input id="school" type="text" placeholder="예: 솔잎초등학교" />
+            </div>
+            <div class="field">
+              <label>( )학년</label>
+              <input id="grade" type="text" placeholder="예: 6" />
+            </div>
+            <div class="field">
+              <label>( )반</label>
+              <input id="class" type="text" placeholder="예: 2" />
+            </div>
+            <div class="field">
+              <label>( )번호</label>
+              <input id="number" type="text" placeholder="예: 10" />
+            </div>
+            <div class="field">
+              <label>( )이름</label>
+              <input id="name" type="text" placeholder="예: 홍길동" />
+            </div>
+          </div>
+        </div>
+
+        <div class="timer" aria-label="빙고 채우기 스톱워치">
+          <div class="timer-label">⏱️ 스톱워치 (오른쪽 위)</div>
+          <div class="time" id="time">00:00.0</div>
+          <div class="timer-buttons">
+            <button id="startBtn" class="primary">시작</button>
+            <button id="pauseBtn" class="ghost" disabled>일시정지</button>
+            <button id="resetBtn" class="ghost" disabled>리셋</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <button id="markToggle" class="ghost" aria-pressed="false" title="채점 모드 토글">채점 모드: 꺼짐</button>
+        <button id="clearMarks" class="ghost" title="표시 모두 지우기">표시 초기화</button>
+        <button id="clearAll" class="ghost" title="칸 내용과 표시 모두 지우기">전체 초기화</button>
+        <span class="hint">· 입력 모드에서는 칸에 타자로 적을 수 있어요 · <strong>채점 모드</strong>가 켜지면 칸을 클릭할 때 빨간색으로 표시돼요</span>
+      </div>
+
+      <div class="board" role="grid" aria-label="5x5 빙고판">
+        <table>
+          <tbody id="bingoBody">
+            <!-- 5 x 5 cells inserted by JS for cleaner markup, but falls back if JS disabled -->
+            <tr>
+              <td><input placeholder="1" /></td>
+              <td><input placeholder="2" /></td>
+              <td><input placeholder="3" /></td>
+              <td><input placeholder="4" /></td>
+              <td><input placeholder="5" /></td>
+            </tr>
+            <tr>
+              <td><input placeholder="6" /></td>
+              <td><input placeholder="7" /></td>
+              <td><input placeholder="8" /></td>
+              <td><input placeholder="9" /></td>
+              <td><input placeholder="10" /></td>
+            </tr>
+            <tr>
+              <td><input placeholder="11" /></td>
+              <td><input placeholder="12" /></td>
+              <td><input placeholder="13" /></td>
+              <td><input placeholder="14" /></td>
+              <td><input placeholder="15" /></td>
+            </tr>
+            <tr>
+              <td><input placeholder="16" /></td>
+              <td><input placeholder="17" /></td>
+              <td><input placeholder="18" /></td>
+              <td><input placeholder="19" /></td>
+              <td><input placeholder="20" /></td>
+            </tr>
+            <tr>
+              <td><input placeholder="21" /></td>
+              <td><input placeholder="22" /></td>
+              <td><input placeholder="23" /></td>
+              <td><input placeholder="24" /></td>
+              <td><input placeholder="25" /></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="footer">
+        <div class="credits">Tip: 다 채웠다면 <strong>채점 모드</strong>를 켜고 맞은 칸을 클릭! 다시 수정하려면 채점 모드를 끄세요.</div>
+        <button id="printBtn" class="ghost" title="인쇄 또는 PDF 저장">인쇄 / PDF 저장</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- 스톱워치 ---
+    const timeEl = document.getElementById('time');
+    const startBtn = document.getElementById('startBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const resetBtn = document.getElementById('resetBtn');
+
+    let startTime = 0;
+    let elapsed = 0;
+    let rafId = null;
+    let running = false;
+
+    function fmt(ms) {
+      const totalMs = Math.floor(ms);
+      const m = Math.floor(totalMs / 60000);
+      const s = Math.floor((totalMs % 60000) / 1000);
+      const ds = Math.floor((totalMs % 1000) / 100); // 1/10초
+      return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${ds}`;
+    }
+
+    function tick() {
+      elapsed = performance.now() - startTime;
+      timeEl.textContent = fmt(elapsed);
+      rafId = requestAnimationFrame(tick);
+    }
+
+    startBtn.addEventListener('click', () => {
+      if (running) return;
+      running = true;
+      startBtn.disabled = true;
+      pauseBtn.disabled = false;
+      resetBtn.disabled = false;
+      startTime = performance.now() - elapsed;
+      rafId = requestAnimationFrame(tick);
+    });
+
+    pauseBtn.addEventListener('click', () => {
+      if (!running) return;
+      running = false;
+      startBtn.disabled = false;
+      pauseBtn.disabled = true;
+      cancelAnimationFrame(rafId);
+    });
+
+    resetBtn.addEventListener('click', () => {
+      running = false;
+      elapsed = 0;
+      startBtn.disabled = false;
+      pauseBtn.disabled = true;
+      resetBtn.disabled = true;
+      cancelAnimationFrame(rafId);
+      timeEl.textContent = '00:00.0';
+    });
+
+    // --- 빙고 보드 동작 ---
+    const markToggle = document.getElementById('markToggle');
+    const clearMarks = document.getElementById('clearMarks');
+    const clearAll = document.getElementById('clearAll');
+    const printBtn = document.getElementById('printBtn');
+    const cells = Array.from(document.querySelectorAll('td'));
+
+    let markMode = false;
+
+    function setMarkMode(on) {
+      markMode = on;
+      markToggle.textContent = `채점 모드: ${on ? '켜짐' : '꺼짐'}`;
+      markToggle.classList.toggle('primary', on);
+      markToggle.setAttribute('aria-pressed', String(on));
+      // 입력 가능/불가 전환 (채점 모드에선 클릭 표시가 쉬우도록 읽기전용)
+      cells.forEach(td => {
+        const input = td.querySelector('input');
+        input.readOnly = on;
+      });
+    }
+
+    setMarkMode(false);
+
+    // 셀 클릭으로 표시 토글 (채점 모드일 때만)
+    cells.forEach(td => {
+      td.addEventListener('click', (e) => {
+        if (!markMode) return; // 입력 모드일 땐 무시
+        // 입력 모드에서는 클릭 시 input 포커스가 기본 동작이라 preventDefault 필요 없음
+        td.classList.toggle('marked');
+      });
+    });
+
+    markToggle.addEventListener('click', () => setMarkMode(!markMode));
+
+    clearMarks.addEventListener('click', () => {
+      cells.forEach(td => td.classList.remove('marked'));
+    });
+
+    clearAll.addEventListener('click', () => {
+      if (!confirm('모든 칸의 내용과 표시를 모두 지울까요?')) return;
+      cells.forEach(td => {
+        td.classList.remove('marked');
+        const input = td.querySelector('input');
+        input.value = '';
+        input.readOnly = false;
+      });
+      setMarkMode(false);
+      // 스톱워치도 초기화할지 선택 가능. 여기서는 유지.
+    });
+
+    printBtn.addEventListener('click', () => window.print());
+
+    // 엔터로 다음 칸 이동 (입력 모드만)
+    const inputs = Array.from(document.querySelectorAll('td input'));
+    inputs.forEach((inp, idx) => {
+      inp.addEventListener('keydown', (e) => {
+        if (markMode) return; // 채점 모드에서는 입력 없음
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          const next = inputs[idx + 1];
+          if (next) next.focus();
+        }
+      });
+    });
+  </script>
+</body>
+</html>
