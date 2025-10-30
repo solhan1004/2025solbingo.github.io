@@ -1,59 +1,267 @@
-<div>Teachable Machine Image Model</div>
-<button type="button" onclick="init()">Start</button>
-<div id="webcam-container"></div>
-<div id="label-container"></div>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
-<script type="text/javascript">
-    // More API functions here:
-    // https://github.com/googlecreativelab/teachablemachine-community/tree/master/libraries/image
-
-    // the link to your model provided by Teachable Machine export panel
-    const URL = "./my_model/";
-
-    let model, webcam, labelContainer, maxPredictions;
-
-    // Load the image model and setup the webcam
-    async function init() {
-        const modelURL = URL + "model.json";
-        const metadataURL = URL + "metadata.json";
-
-        // load the model and metadata
-        // Refer to tmImage.loadFromFiles() in the API to support files from a file picker
-        // or files from your local hard drive
-        // Note: the pose library adds "tmImage" object to your window (window.tmImage)
-        model = await tmImage.load(modelURL, metadataURL);
-        maxPredictions = model.getTotalClasses();
-
-        // Convenience function to setup a webcam
-        const flip = true; // whether to flip the webcam
-        webcam = new tmImage.Webcam(200, 200, flip); // width, height, flip
-        await webcam.setup(); // request access to the webcam
-        await webcam.play();
-        window.requestAnimationFrame(loop);
-
-        // append elements to the DOM
-        document.getElementById("webcam-container").appendChild(webcam.canvas);
-        labelContainer = document.getElementById("label-container");
-        for (let i = 0; i < maxPredictions; i++) { // and class labels
-            labelContainer.appendChild(document.createElement("div"));
-        }
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>To‑Do List</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg1: #7dd3fc; /* sky-300 */
+      --bg2: #c084fc; /* violet-400 */
+      --bg3: #fda4af; /* rose-300 */
+      --card: rgba(255, 255, 255, 0.18);
+      --card-border: rgba(255, 255, 255, 0.35);
+      --text: #0f172a; /* slate-900 */
+      --muted: #475569; /* slate-600 */
+      --accent: #22c55e; /* green-500 */
+      --danger: #ef4444; /* red-500 */
+      --shadow: 0 10px 30px rgba(2, 6, 23, 0.15);
     }
 
-    async function loop() {
-        webcam.update(); // update the webcam frame
-        await predict();
-        window.requestAnimationFrame(loop);
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+
+    body {
+      margin: 0;
+      font-family: "Inter", "Pretendard", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+      color: var(--text);
+      overflow: hidden; /* 한 페이지 풀스크린 */
     }
 
-    // run the webcam image through the image model
-    async function predict() {
-        // predict can take in an image, video or canvas html element
-        const prediction = await model.predict(webcam.canvas);
-        for (let i = 0; i < maxPredictions; i++) {
-            const classPrediction =
-                prediction[i].className + ": " + prediction[i].probability.toFixed(2);
-            labelContainer.childNodes[i].innerHTML = classPrediction;
-        }
+    /* 🎨 Animated gradient background */
+    .bg {
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(1200px 1200px at 10% 10%, var(--bg1), transparent 60%),
+                  radial-gradient(1000px 1000px at 90% 20%, var(--bg2), transparent 60%),
+                  radial-gradient(900px 900px at 50% 85%, var(--bg3), transparent 60%),
+                  linear-gradient(120deg, #e0f2fe, #f3e8ff 45%, #ffe4e6);
+      filter: saturate(1.1);
+      animation: hue 18s linear infinite;
+      z-index: -3;
     }
-</script>
+
+    @keyframes hue { from { filter: hue-rotate(0deg) saturate(1.1); } to { filter: hue-rotate(360deg) saturate(1.1);} }
+
+    /* 🫧 Soft floating blobs */
+    .blob {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(40px);
+      opacity: 0.5;
+      animation: float 14s ease-in-out infinite;
+      z-index: -2;
+    }
+    .blob.one { width: 360px; height: 360px; left: -60px; top: 20%; background: #93c5fd; animation-delay: 0s; }
+    .blob.two { width: 280px; height: 280px; right: 5%; top: 10%; background: #a78bfa; animation-delay: 2s; }
+    .blob.three { width: 420px; height: 420px; left: 60%; bottom: -80px; background: #fca5a5; animation-delay: 4s; }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0) translateX(0) scale(1); }
+      50% { transform: translateY(-20px) translateX(10px) scale(1.03); }
+    }
+
+    /* ░ Noise film (subtle texture) */
+    .noise {
+      position: fixed;
+      inset: 0;
+      background-image: url('data:image/svg+xml;utf8,\
+        <svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160">\
+          <filter id="n">\
+            <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/>\
+            <feColorMatrix type="saturate" values="0"/>\
+            <feComponentTransfer>\
+              <feFuncA type="table" tableValues="0 0.03"/>\
+            </feComponentTransfer>\
+          </filter>\
+          <rect width="100%" height="100%" filter="url(%23n)"/>\
+        </svg>');
+      background-size: 180px 180px;
+      opacity: .6;
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    /* 🪟 Glassmorphism card */
+    .page {
+      height: 100dvh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+
+    .todo-container {
+      width: min(92vw, 540px);
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px) saturate(1.1);
+      -webkit-backdrop-filter: blur(10px) saturate(1.1);
+      padding: 28px 24px 20px;
+    }
+
+    h1 {
+      margin: 0 0 14px;
+      font-size: 26px;
+      letter-spacing: -0.02em;
+    }
+
+    p.sub {
+      margin: 0 0 16px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    #todo-input {
+      flex: 1;
+      padding: 12px 14px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      border-radius: 12px;
+      background: rgba(255,255,255,0.8);
+      outline: none;
+      font-size: 15px;
+    }
+
+    #add-btn {
+      padding: 12px 16px;
+      border: none;
+      border-radius: 12px;
+      background: linear-gradient(180deg, #34d399, #22c55e);
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform .06s ease, filter .2s ease;
+    }
+    #add-btn:hover { filter: brightness(1.05); }
+    #add-btn:active { transform: translateY(1px); }
+
+    ul { list-style: none; padding: 0; margin: 10px 0 0; }
+
+    li {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 12px 14px;
+      border: 1px solid rgba(15, 23, 42, 0.06);
+      background: rgba(255,255,255,0.7);
+      border-radius: 12px;
+      box-shadow: 0 4px 16px rgba(2, 6, 23, 0.05);
+      margin-top: 10px;
+      transition: background .2s ease;
+    }
+
+    .text { flex: 1; word-break: break-word; }
+
+    .actions { display: flex; gap: 8px; align-items: center; }
+
+    .done-toggle {
+      appearance: none;
+      width: 18px; height: 18px; border-radius: 6px;
+      border: 2px solid #10b981; display: grid; place-items: center; cursor: pointer;
+    }
+    .done-toggle:checked { background: #10b981; }
+    .done-toggle:checked::after { content: "✔"; font-size: 12px; color: white; }
+
+    .delete-btn {
+      background: linear-gradient(180deg, #fb7185, #ef4444);
+      color: white; border: none; padding: 8px 10px; border-radius: 10px; cursor: pointer; font-weight: 600;
+      transition: transform .06s ease, filter .2s ease;
+    }
+    .delete-btn:hover { filter: brightness(1.05); }
+    .delete-btn:active { transform: translateY(1px); }
+
+    .done .text { text-decoration: line-through; color: var(--muted); }
+
+    /* Accessibility & motion */
+    @media (prefers-reduced-motion: reduce) {
+      .bg { animation: none; }
+      .blob { animation: none; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Background layers -->
+  <div class="bg" aria-hidden="true"></div>
+  <div class="blob one" aria-hidden="true"></div>
+  <div class="blob two" aria-hidden="true"></div>
+  <div class="blob three" aria-hidden="true"></div>
+  <div class="noise" aria-hidden="true"></div>
+
+  <!-- Single full-screen page -->
+  <main class="page" role="main">
+    <section class="todo-container" aria-label="할 일 관리">
+      <h1>To‑Do List</h1>
+      <p class="sub">오늘 해야 할 일을 적고 체크해 보세요.</p>
+
+      <div class="row">
+        <input type="text" id="todo-input" placeholder="새로운 할 일을 입력하세요…" aria-label="할 일 입력" />
+        <button id="add-btn" aria-label="할 일 추가">추가</button>
+      </div>
+
+      <ul id="todo-list" aria-live="polite"></ul>
+    </section>
+  </main>
+
+  <script>
+    const input = document.getElementById('todo-input');
+    const addBtn = document.getElementById('add-btn');
+    const list = document.getElementById('todo-list');
+
+    function addTodo() {
+      const text = input.value.trim();
+      if (!text) {
+        alert('할 일을 입력해주세요!');
+        return;
+      }
+
+      const li = document.createElement('li');
+
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.className = 'done-toggle';
+      checkbox.addEventListener('change', () => {
+        li.classList.toggle('done', checkbox.checked);
+      });
+
+      const span = document.createElement('span');
+      span.className = 'text';
+      span.textContent = text;
+
+      const del = document.createElement('button');
+      del.className = 'delete-btn';
+      del.textContent = '삭제';
+      del.addEventListener('click', () => li.remove());
+
+      const actions = document.createElement('div');
+      actions.className = 'actions';
+      actions.appendChild(checkbox);
+      actions.appendChild(del);
+
+      li.appendChild(span);
+      li.appendChild(actions);
+
+      list.appendChild(li);
+      input.value = '';
+      input.focus();
+    }
+
+    addBtn.addEventListener('click', addTodo);
+
+    // Enter 키로도 추가
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') addTodo();
+    });
+  </script>
+</body>
+</html>
